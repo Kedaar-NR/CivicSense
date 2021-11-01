@@ -9,140 +9,26 @@ import 'package:googleapis/civicinfo/v2.dart';
 import "package:googleapis_auth/auth_io.dart";
 import 'package:getwidget/getwidget.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:flutter_tags/flutter_tags.dart';
+import 'webhome_screen.dart';
+import 'searchhome_screen.dart';
 
-class HomePage extends StatefulWidget {
-  static const routeName = '/home';
-
-  @override
-  _HomePageState createState() => _HomePageState();
-}
-
-class _HomePageState extends State<HomePage> {
-  GooglePlace googlePlace;
-  List<AutocompletePrediction> predictions = [];
-
-  @override
-  void initState() {
-    String apiKey = DotEnv().env['API_KEY'];
-    googlePlace = GooglePlace(apiKey);
-    super.initState();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text("Civic Connect"),
-        backgroundColor: Color.fromARGB(255, 255, 49, 212),
-        actions: [
-          Builder(
-              builder: (context) => // Ensure Scaffold is in context
-                  IconButton(
-                      icon: Icon(Icons.search, color: Colors.white),
-                      onPressed: () => Scaffold.of(context).openDrawer()))
-        ],
-      ),
-      body: Container(
-        margin: EdgeInsets.only(right: 20, left: 20, top: 20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            TextField(
-              decoration: InputDecoration(
-                labelText: "Input your address",
-                focusedBorder: OutlineInputBorder(
-                  borderSide: BorderSide(
-                    color: Colors.blue,
-                    width: 2.0,
-                  ),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderSide: BorderSide(
-                    color: Colors.black54,
-                    width: 2.0,
-                  ),
-                ),
-              ),
-              onChanged: (value) {
-                if (value.isNotEmpty) {
-                  autoCompleteSearch(value);
-                } else {
-                  if (predictions.length > 0 && mounted) {
-                    setState(() {
-                      predictions = [];
-                    });
-                  }
-                }
-              },
-            ),
-            SizedBox(
-              height: 10,
-            ),
-            Expanded(
-                child: new Container(
-              child: ListView.builder(
-                scrollDirection: Axis.vertical,
-                shrinkWrap: true,
-                itemCount: predictions.length,
-                itemBuilder: (context, index) {
-                  return ListTile(
-                    leading: CircleAvatar(
-                      child: Icon(
-                        Icons.pin_drop,
-                        color: Colors.white,
-                      ),
-                    ),
-                    title: Text(predictions[index].description ?? ""),
-                    onTap: () {
-                      debugPrint(predictions[index].placeId);
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => DetailsPage(
-                            placeId: predictions[index].placeId ?? "",
-                            googlePlace: googlePlace,
-                          ),
-                        ),
-                      );
-                    },
-                  );
-                },
-              ),
-            ))
-          ],
-        ),
-      ),
-    );
-  }
-
-  void autoCompleteSearch(String value) async {
-    var result = await googlePlace.autocomplete.get(value);
-    if (result != null && result.predictions != null && mounted) {
-      setState(() {
-        predictions = result.predictions;
-      });
-    }
-  }
-}
-
-class DetailsPage extends StatefulWidget {
+class CivicHomePage extends StatefulWidget {
   final String placeId;
   final GooglePlace googlePlace;
   final List<dynamic> newsData;
 
-  DetailsPage({Key key, this.placeId, this.googlePlace, this.newsData})
+  CivicHomePage({Key key, this.placeId, this.googlePlace, this.newsData})
       : super(key: key);
 
   @override
-  _DetailsPageState createState() =>
-      _DetailsPageState(this.placeId, this.googlePlace, this.newsData);
+  _CivicHomePageState createState() =>
+      _CivicHomePageState(this.placeId, this.googlePlace, this.newsData);
 }
 
-class _DetailsPageState extends State<DetailsPage>
+class _CivicHomePageState extends State<CivicHomePage>
     with SingleTickerProviderStateMixin {
   final String placeId;
   final GooglePlace googlePlace;
@@ -151,7 +37,7 @@ class _DetailsPageState extends State<DetailsPage>
 
   // define your tab controller here
 
-  _DetailsPageState(this.placeId, this.googlePlace, this.newsData);
+  _CivicHomePageState(this.placeId, this.googlePlace, this.newsData);
 
   DetailsResult detailsResult;
   List<Uint8List> images = [];
@@ -544,12 +430,14 @@ class _DetailsPageState extends State<DetailsPage>
     await canLaunch(url) ? await launch(url) : throw 'Could not launch $url';
   }
 
-  Widget getSocialWidgets(Official official) {
+  Widget renderSocialWidgets(Official official) {
     List<Widget> widgets = [];
     String repEmailProfile = getOfficialLink(official, "Email");
     String repFBProfile = getOfficialLink(official, "Facebook");
     String repTwitterProfile = getOfficialLink(official, "Twitter");
     String repPhoneProfile = getOfficialLink(official, "Phone");
+    String repYoutubeProfile = getOfficialLink(official, "YouTube");
+
     if (repPhoneProfile != null) {
       widgets.add(Expanded(
           flex: 1,
@@ -630,6 +518,25 @@ class _DetailsPageState extends State<DetailsPage>
       ));
     }
 
+    if (repYoutubeProfile != null) {
+      widgets.add(Expanded(
+        flex: 1,
+        child: Container(
+            alignment: Alignment.topLeft,
+            child: Column(
+              children: <Widget>[
+                GFIconButton(
+                  onPressed: () {
+                    launchUrl(repYoutubeProfile);
+                  },
+                  icon: new Image.asset("assets/youtube.png"),
+                  size: GFSize.MEDIUM,
+                  shape: GFIconButtonShape.pills,
+                )
+              ],
+            )),
+      ));
+    }
     return Expanded(flex: 1, child: Row(children: widgets));
   }
 
@@ -643,7 +550,6 @@ class _DetailsPageState extends State<DetailsPage>
           String repOfficeDivisionName = getOfficialTitle(index);
 
           Official representative = representatives[index];
-          Widget socialWidgets = getSocialWidgets(representative);
 
           return GestureDetector(
             onTap: () {
@@ -712,7 +618,8 @@ class _DetailsPageState extends State<DetailsPage>
                                 alignment: Alignment.centerLeft,
                                 child: Container(
                                     alignment: Alignment.topLeft,
-                                    child: socialWidgets))),
+                                    child:
+                                        renderSocialWidgets(representative)))),
                       ]),
                     ),
                   ),
@@ -931,7 +838,7 @@ class _DetailsPageState extends State<DetailsPage>
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) => HomePage(),
+                                    builder: (context) => SearchHomePage(),
                                   ),
                                 );
                               },
@@ -1011,63 +918,5 @@ class _DetailsPageState extends State<DetailsPage>
         );
       },
     );
-  }
-}
-
-class WebHomePage extends StatefulWidget {
-  final String url;
-
-  WebHomePage({Key key, this.url}) : super(key: key);
-
-  @override
-  _WebHomePageState createState() => _WebHomePageState(this.url);
-}
-
-class _WebHomePageState extends State<WebHomePage> {
-  final String url;
-  InAppWebViewController _webViewController;
-
-  _WebHomePageState(this.url);
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-        appBar: AppBar(
-            title: Text("Civic Connect"),
-            backgroundColor: Color.fromARGB(255, 255, 49, 212),
-            leading: IconButton(
-              icon: Icon(Icons.arrow_back, color: Colors.black),
-              onPressed: () => Navigator.of(context).pop(),
-            )),
-        body: Container(
-            child: Column(children: <Widget>[
-          Expanded(
-            child: Container(
-              child: InAppWebView(
-                  initialUrlRequest: URLRequest(url: Uri.parse(this.url)),
-                  initialOptions: InAppWebViewGroupOptions(
-                      crossPlatform: InAppWebViewOptions(
-                        useShouldOverrideUrlLoading: true,
-                        mediaPlaybackRequiresUserGesture: false,
-                      ),
-                      android: AndroidInAppWebViewOptions(
-                        useHybridComposition: true,
-                      ),
-                      ios: IOSInAppWebViewOptions(
-                        allowsInlineMediaPlayback: true,
-                      )),
-                  onWebViewCreated: (InAppWebViewController controller) {
-                    this._webViewController = controller;
-                  },
-                  androidOnPermissionRequest:
-                      (InAppWebViewController controller, String origin,
-                          List<String> resources) async {
-                    return PermissionRequestResponse(
-                        resources: resources,
-                        action: PermissionRequestResponseAction.GRANT);
-                  }),
-            ),
-          ),
-        ])));
   }
 }

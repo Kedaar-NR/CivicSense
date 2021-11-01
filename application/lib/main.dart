@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'login_screen.dart';
-import 'home_screen.dart';
+import 'searchhome_screen.dart';
 import 'package:flutter/services.dart';
 import 'transition_route_observer.dart';
 
@@ -57,7 +57,7 @@ class MyApp extends StatelessWidget {
       navigatorObservers: [TransitionRouteObserver()],
       initialRoute: LoginScreen.routeName,
       routes: {
-        HomePage.routeName: (context) => HomePage(),
+        SearchHomePage.routeName: (context) => SearchHomePage(),
         LoginScreen.routeName: (context) => LoginScreen(),
       },
     );

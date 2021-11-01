@@ -5,7 +5,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'constants.dart';
 import 'custom_route.dart';
 import 'users.dart';
-import 'home_screen.dart';
+import 'searchhome_screen.dart';
 
 class LoginScreen extends StatelessWidget {
   static const routeName = '/auth';
@@ -189,7 +189,7 @@ class LoginScreen extends StatelessWidget {
       },
       onSubmitAnimationCompleted: () {
         Navigator.of(context).pushReplacement(FadePageRoute(
-          builder: (context) => HomePage(),
+          builder: (context) => SearchHomePage(),
         ));
       },
       onRecoverPassword: (name) {
